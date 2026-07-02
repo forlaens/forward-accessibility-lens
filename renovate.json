@@ -5,10 +5,16 @@
     ":dependencyDashboard"
   ],
   "timezone": "Europe/Copenhagen",
+  "branchPrefix": "renovate-",
+  "branchPrefixOld": "renovate/",
   "labels": [
     "dependencies"
   ],
   "rangeStrategy": "bump",
+  "automerge": true,
+  "automergeType": "pr",
+  "platformAutomerge": false,
+  "ignoreTests": false,
   "packageRules": [
     {
       "matchManagers": [

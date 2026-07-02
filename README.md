@@ -46,4 +46,6 @@ Keep `.env.chrome-webstore` local. Use `.env.chrome-webstore.example` as the tem
 
 ## Dependency Updates
 
-Renovate runs every morning from GitHub Actions and can also be started manually from the Renovate workflow. It uses the repository secret `RENOVATE_TOKEN` so it can update package files and GitHub Actions workflows.
+Renovate runs every morning from GitHub Actions, after successful CI runs, and can also be started manually from the Renovate workflow. It uses the repository secret `RENOVATE_TOKEN` so it can update package files and GitHub Actions workflows.
+
+Renovate dependency pull requests are automatically merged only after all status checks pass.
