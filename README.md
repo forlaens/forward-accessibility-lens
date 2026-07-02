@@ -43,3 +43,7 @@ The production extension output is written to `dist/`.
 Release helpers are documented in [CHROME_WEB_STORE_RELEASE.md](CHROME_WEB_STORE_RELEASE.md).
 
 Keep `.env.chrome-webstore` local. Use `.env.chrome-webstore.example` as the template.
+
+## Dependency Updates
+
+Renovate runs every morning from GitHub Actions and can also be started manually from the Renovate workflow. It uses the repository secret `RENOVATE_TOKEN` so it can update package files and GitHub Actions workflows.
