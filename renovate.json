@@ -20,6 +20,19 @@
       "matchManagers": [
         "npm"
       ],
+      "matchPackageNames": [
+        "vite",
+        "@vitejs/plugin-react"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "groupName": "Vite major dependencies"
+    },
+    {
+      "matchManagers": [
+        "npm"
+      ],
       "matchUpdateTypes": [
         "minor",
         "patch"

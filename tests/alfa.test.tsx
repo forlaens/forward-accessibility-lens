@@ -11,7 +11,7 @@ it("has no Siteimprove Alfa accessibility failures", async () => {
 
   const pageJson = await Native.fromDocument(document);
   const page = Page.from(pageJson).getUnsafe("Unable to create Alfa page from document");
-  const outcomes = await Audit.of(page, rules).evaluate().toPromise();
+  const outcomes = await resolveAlfaOutcomes(Audit.of(page, rules).evaluate());
   const failures = Array.from(outcomes).filter((outcome) => {
     if (outcome.outcome !== Outcome.Value.Failed) {
       return false;
@@ -23,6 +23,18 @@ it("has no Siteimprove Alfa accessibility failures", async () => {
 
   expect(formatAlfaFailures(failures)).toEqual([]);
 });
+
+type AlfaOutcomes = Iterable<Outcome<any, any, any, any>>;
+
+async function resolveAlfaOutcomes(
+  evaluation: AlfaOutcomes | Promise<AlfaOutcomes> | { toPromise: () => Promise<AlfaOutcomes> }
+) {
+  if ("toPromise" in evaluation && typeof evaluation.toPromise === "function") {
+    return evaluation.toPromise();
+  }
+
+  return evaluation;
+}
 
 function formatAlfaFailures(outcomes: Array<Outcome<any, any, any, any>>) {
   return outcomes.map((outcome) => {
