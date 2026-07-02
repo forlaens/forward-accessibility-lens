@@ -1,0 +1,13 @@
+.DS_Store
+node_modules/
+dist/
+coverage/
+.vite/
+.env
+.env.*
+!.env.example
+!.env.chrome-webstore.example
+forward-accessibility-lens-*-chrome-web-store.zip
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

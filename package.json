@@ -1,0 +1,43 @@
+{
+  "name": "accessibility-tool-browser-extension",
+  "version": "1.0.6",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "npm run build:extension && npm run test:a11y",
+    "build:extension": "vite build && npx esbuild src/extension/content.js --bundle --format=iife --outfile=dist/content.js && npx esbuild src/extension/background.js --bundle --format=esm --outfile=dist/background.js && node scripts/clean-extension-package.js",
+    "build:local": "npm run build:extension && node scripts/apply-local-extension-branding.js",
+    "webstore:package": "npm run prepublish:check && node scripts/package-chrome-web-store.js",
+    "webstore:status": "node scripts/chrome-web-store.js status",
+    "webstore:upload": "node scripts/chrome-web-store.js upload",
+    "webstore:publish": "node scripts/chrome-web-store.js publish",
+    "webstore:release": "npm run webstore:package && node scripts/chrome-web-store.js release",
+    "test": "vitest run",
+    "test:a11y": "vitest run tests/accessibility.test.ts",
+    "test:axe": "vitest run tests/axe.test.ts",
+    "test:alfa": "vitest run tests/alfa.test.ts",
+    "prepublish:check": "npm run build && npm test"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^5.1.1",
+    "lucide-react": "^0.561.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.7"
+  },
+  "devDependencies": {
+    "@siteimprove/alfa-rules": "^0.114.3",
+    "@siteimprove/alfa-test": "^0.114.3",
+    "@siteimprove/alfa-web": "^0.114.3",
+    "@testing-library/react": "^16.3.1",
+    "@types/chrome": "^0.1.34",
+    "@types/node": "^24.10.2",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "axe-core": "^4.11.4",
+    "canvas": "^3.2.3",
+    "jsdom": "^27.2.0",
+    "vitest": "^4.1.2"
+  }
+}
