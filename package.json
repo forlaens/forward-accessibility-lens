@@ -19,25 +19,25 @@
     "prepublish:check": "npm run build && npm test"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "^5.1.1",
-    "lucide-react": "^0.561.0",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.2.0",
+    "lucide-react": "^0.577.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "typescript": "^5.9.3",
-    "vite": "^7.2.7"
+    "vite": "^7.3.6"
   },
   "devDependencies": {
-    "@siteimprove/alfa-rules": "^0.114.3",
-    "@siteimprove/alfa-test": "^0.114.3",
-    "@siteimprove/alfa-web": "^0.114.3",
-    "@testing-library/react": "^16.3.1",
-    "@types/chrome": "^0.1.34",
-    "@types/node": "^24.10.2",
-    "@types/react": "^19.2.7",
+    "@siteimprove/alfa-rules": "^0.117.0",
+    "@siteimprove/alfa-test": "^0.117.0",
+    "@siteimprove/alfa-web": "^0.117.0",
+    "@testing-library/react": "^16.3.2",
+    "@types/chrome": "^0.2.2",
+    "@types/node": "^24.13.2",
+    "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "axe-core": "^4.11.4",
+    "axe-core": "^4.12.1",
     "canvas": "^3.2.3",
     "jsdom": "^29.1.1",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.9"
   }
 }
