@@ -516,6 +516,8 @@ describe("accessibility tree analysis", () => {
       <svg role="img" onclick="alert('x')">
         <title>Trend sparkline</title>
         <script>alert("x")</script>
+        <a href="data:text/html,unsafe"><path d="M0 0h5v5z"></path></a>
+        <use href="https://example.com/icons.svg#trend"></use>
         <path d="M0 0h10v10z"></path>
       </svg>
       <figure>
@@ -565,8 +567,11 @@ describe("accessibility tree analysis", () => {
       "",
       ""
     ]);
-    expect(decodeURIComponent(items[5].thumbnailSrc)).not.toContain("<script");
-    expect(decodeURIComponent(items[5].thumbnailSrc)).not.toContain("onclick=");
+    const sanitizedSvg = decodeURIComponent(items[5].thumbnailSrc);
+    expect(sanitizedSvg).not.toContain("<script");
+    expect(sanitizedSvg).not.toContain("onclick=");
+    expect(sanitizedSvg).not.toContain("data:text/html");
+    expect(sanitizedSvg).not.toContain("https://example.com");
     expect(analyzeAccessibility(document).graphics.filter((item) => item.problem)).toHaveLength(3);
   });
 

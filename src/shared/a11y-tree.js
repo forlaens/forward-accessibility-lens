@@ -1234,9 +1234,11 @@ function sanitizeSvgThumbnail(svg) {
   [svg, ...svg.querySelectorAll("*")].forEach((element) => {
     Array.from(element.attributes).forEach((attribute) => {
       const name = attribute.name.toLowerCase();
-      const value = attribute.value.trim().toLowerCase();
+      const value = attribute.value.trim();
+      const isReference = name === "href" || name === "xlink:href";
+      const isLocalFragment = value.startsWith("#") && value.length > 1;
 
-      if (name.startsWith("on") || ((name === "href" || name === "xlink:href") && value.startsWith("javascript:"))) {
+      if (name.startsWith("on") || (isReference && !isLocalFragment)) {
         element.removeAttribute(attribute.name);
       }
     });

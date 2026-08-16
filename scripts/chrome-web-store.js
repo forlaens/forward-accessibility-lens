@@ -157,7 +157,9 @@ async function getOAuthAccessToken(clientId, clientSecret, refreshToken) {
     throw new Error(`Could not refresh Chrome Web Store access token (${response.status} ${response.statusText}).\n${JSON.stringify(body ?? text, null, 2)}`);
   }
 
-  if (body?.scope && !body.scope.split(/\s+/).includes(scope)) {
+  const grantedScopes = new Set(String(body?.scope || "").trim().split(/\s+/).filter(Boolean));
+
+  if (body?.scope && !grantedScopes.has(scope)) {
     throw new Error(`Refresh token does not include the required Chrome Web Store scope: ${scope}`);
   }
 

@@ -1,6 +1,6 @@
 {
   "name": "forward-accessibility-lens",
-  "version": "1.0.6",
+  "version": "1.0.8",
   "description": "A Chrome side-panel extension for practical accessibility inspection.",
   "private": true,
   "license": "MIT",
