@@ -1,7 +1,17 @@
 {
-  "name": "accessibility-tool-browser-extension",
+  "name": "forward-accessibility-lens",
   "version": "1.0.6",
+  "description": "A Chrome side-panel extension for practical accessibility inspection.",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/forlaens/forward-accessibility-lens.git"
+  },
+  "homepage": "https://forlaens.com/forward-udvidelser/",
+  "bugs": {
+    "url": "https://github.com/forlaens/forward-accessibility-lens/issues"
+  },
   "type": "module",
   "scripts": {
     "build": "npm run build:extension && npm run test:a11y",
