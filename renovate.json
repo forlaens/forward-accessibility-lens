@@ -2,7 +2,8 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
-    ":dependencyDashboard"
+    ":dependencyDashboard",
+    "helpers:pinGitHubActionDigests"
   ],
   "timezone": "Europe/Copenhagen",
   "branchPrefix": "renovate-",
@@ -11,11 +12,32 @@
     "dependencies"
   ],
   "rangeStrategy": "bump",
-  "automerge": true,
+  "automerge": false,
   "automergeType": "pr",
   "platformAutomerge": false,
   "ignoreTests": false,
   "packageRules": [
+    {
+      "description": "Automerge non-major updates after CI passes.",
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest"
+      ],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "Require manual review for major updates.",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "automerge": false,
+      "addLabels": [
+        "major"
+      ]
+    },
     {
       "matchManagers": [
         "npm"
