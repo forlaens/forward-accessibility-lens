@@ -29,12 +29,12 @@
     "prepublish:check": "npm run build && npm test"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "^6.0.5",
-    "lucide-react": "^1.31.0",
+    "@vitejs/plugin-react": "^6.1.0",
+    "lucide-react": "^1.33.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "typescript": "^7.0.2",
-    "vite": "^8.2.1"
+    "vite": "^8.2.2"
   },
   "devDependencies": {
     "@siteimprove/alfa-rules": "^0.119.0",
@@ -48,6 +48,6 @@
     "axe-core": "^4.13.0",
     "canvas": "^3.2.3",
     "jsdom": "^30.0.1",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   }
 }
