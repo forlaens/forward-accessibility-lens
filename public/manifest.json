@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Forward • Accessibility Lens",
   "description": "Inspect headings, landmarks, and other accessibility structures on the current page.",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "permissions": ["activeTab", "scripting", "sidePanel", "storage", "tabs", "webNavigation"],
   "host_permissions": ["http://*/*", "https://*/*", "file:///*"],
   "action": {
