@@ -55,6 +55,18 @@ const PROHIBITED_HEADING_ROLES = new Set([
 
 const PRESENTATIONAL_ROLES = new Set(["none", "presentation"]);
 const HIDDEN_INPUT_TYPES = new Set(["hidden"]);
+const EMBEDDED_INPUT_EXCLUDED_TYPES = new Set([
+  "button",
+  "checkbox",
+  "color",
+  "file",
+  "hidden",
+  "image",
+  "radio",
+  "reset",
+  "submit"
+]);
+const RANGE_ROLES = new Set(["meter", "progressbar", "scrollbar", "slider", "spinbutton"]);
 const VALID_ARIA_ROLES = new Set([
   "alert",
   "article",
@@ -420,41 +432,7 @@ export function isExposedToAccessibilityTree(element) {
     return cached;
   }
 
-  let exposed = true;
-
-  for (let current = element; current; current = getComposedParentElement(current)) {
-    if (current.tagName.toLowerCase() === "noscript") {
-      exposed = false;
-      break;
-    }
-
-    if (current.hasAttribute("hidden")) {
-      exposed = false;
-      break;
-    }
-
-    if (current.getAttribute("aria-hidden") === "true") {
-      exposed = false;
-      break;
-    }
-
-    if (current instanceof HTMLInputElement && HIDDEN_INPUT_TYPES.has(current.type)) {
-      exposed = false;
-      break;
-    }
-
-    const style = getComputedStyle(current);
-
-    if (style.display === "none" || style.visibility === "hidden" || style.visibility === "collapse") {
-      exposed = false;
-      break;
-    }
-
-    if (current.inert) {
-      exposed = false;
-      break;
-    }
-  }
+  let exposed = !isHiddenForAccessibleName(element);
 
   if (exposed) {
     const role = getExplicitRole(element);
@@ -498,21 +476,10 @@ export function computeAccessibleName(element, visited = new Set(), options = { 
 function computeAccessibleNameUncached(element, visited, options) {
   const labelledBy = element.getAttribute("aria-labelledby");
   if (labelledBy) {
-    const label = labelledBy
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((id) => resolveIdReference(element, id))
-      .filter(Boolean)
-      .map((labelElement) => computeAccessibleText(labelElement, visited, {
-        allowVisitedRoot: labelElement === element,
-        depth: 1,
-        inLabelledByTraversal: true
-      }))
-      .join(" ")
-      .trim();
+    const label = computeLabelledByText(element, labelledBy, visited, 1);
 
     if (label) {
-      return normalizeWhitespace(label);
+      return label;
     }
   }
 
@@ -521,7 +488,7 @@ function computeAccessibleNameUncached(element, visited, options) {
     return normalizeWhitespace(ariaLabel);
   }
 
-  if (element instanceof HTMLImageElement) {
+  if (element instanceof HTMLImageElement && element.hasAttribute("alt")) {
     return normalizeWhitespace(element.alt);
   }
 
@@ -561,30 +528,39 @@ function computeAccessibleNameUncached(element, visited, options) {
   if (element instanceof HTMLFieldSetElement) {
     const legend = Array.from(element.children).find((child) => child instanceof HTMLLegendElement);
     if (legend) {
-      return computeAccessibleText(legend, visited);
+      return normalizeWhitespace(computeAccessibleText(legend, visited));
     }
   }
 
-  const title = normalizeWhitespace(element.title);
-  if (title) {
-    return title;
+  if (options.nameFromContent) {
+    const content = normalizeWhitespace(computeAccessibleText(element, visited, {
+      allowVisitedRoot: true,
+      skipCurrentLabelledBy: true
+    }));
+
+    if (content) {
+      return content;
+    }
   }
 
-  return options.nameFromContent ? computeAccessibleText(element, visited, {
-    allowVisitedRoot: true,
-    skipCurrentLabelledBy: true
-  }) : "";
+  return normalizeWhitespace(element.title);
 }
 
 function computeAccessibleText(element, visited, options = {}) {
   const depth = options.depth ?? 0;
   const inLabelledByTraversal = options.inLabelledByTraversal ?? false;
   const skipCurrentLabelledBy = options.skipCurrentLabelledBy ?? false;
+  const includeHiddenSubtree = options.includeHiddenSubtree ?? false;
+  const excludedElement = options.excludedElement ?? null;
   if (depth > MAX_ACCESSIBLE_TEXT_DEPTH) {
     return "";
   }
 
-  if (!(element instanceof Element) || !isExposedToAccessibilityTree(element)) {
+  if (
+    !(element instanceof Element) ||
+    element === excludedElement ||
+    (!includeHiddenSubtree && isHiddenForAccessibleName(element))
+  ) {
     return "";
   }
 
@@ -600,46 +576,224 @@ function computeAccessibleText(element, visited, options = {}) {
     return "";
   }
 
-  const name = element.getAttribute("aria-label");
-  if (name?.trim()) {
-    return normalizeWhitespace(name);
-  }
-
+  const role = getExplicitRole(element);
+  const isPresentational = PRESENTATIONAL_ROLES.has(role ?? "");
   const labelledBy = element.getAttribute("aria-labelledby");
-  if (labelledBy && !inLabelledByTraversal && !skipCurrentLabelledBy) {
-    return normalizeWhitespace(
-      labelledBy
-        .split(/\s+/)
-        .filter(Boolean)
-        .map((id) => resolveIdReference(element, id))
-        .filter(Boolean)
-        .map((labelElement) => computeAccessibleText(labelElement, visited, {
-          allowVisitedRoot: labelElement === element,
-          depth: depth + 1,
-          inLabelledByTraversal: true
-        }))
-        .join(" ")
-    );
+  if (!isPresentational && labelledBy && !inLabelledByTraversal && !skipCurrentLabelledBy) {
+    return computeLabelledByText(element, labelledBy, visited, depth + 1, { excludedElement });
   }
 
-  return normalizeWhitespace(
-    Array.from(getComposedChildNodes(element, normalizeAnalysisOptions()))
+  if (!isPresentational) {
+    const embeddedControlValue = getEmbeddedControlValue(element);
+    if (embeddedControlValue !== null) {
+      return embeddedControlValue;
+    }
+
+    const name = element.getAttribute("aria-label");
+    if (name?.trim()) {
+      return normalizeWhitespace(name);
+    }
+
+    const nativeTextAlternative = getNativeDescendantTextAlternative(element);
+    if (nativeTextAlternative !== null) {
+      return nativeTextAlternative;
+    }
+  }
+
+  const descendantText = Array.from(getComposedChildNodes(element, normalizeAnalysisOptions()))
       .map((node) => {
         if (node.nodeType === Node.TEXT_NODE) {
           return node.textContent ?? "";
         }
 
         if (node instanceof Element) {
-          return computeAccessibleText(node, visited, {
+          if (NON_CONTENT_TEXT_TAGS.has(node.tagName.toLowerCase())) {
+            return " ";
+          }
+
+          const text = computeAccessibleText(node, visited, {
             depth: depth + 1,
-            inLabelledByTraversal
+            inLabelledByTraversal,
+            includeHiddenSubtree,
+            excludedElement
           });
+
+          return text && createsAccessibleNameBoundary(node) ? ` ${text} ` : text;
         }
 
         return "";
       })
-      .join(" ")
-  );
+      .join("");
+
+  const markerText = getCssGeneratedText(element, "::marker");
+  const beforeText = getCssGeneratedText(element, "::before");
+  const afterText = getCssGeneratedText(element, "::after");
+
+  return `${markerText}${beforeText}${descendantText}${afterText}`;
+}
+
+function computeLabelledByText(element, labelledBy, visited, depth, options = {}) {
+  const consultedNodes = new Set();
+  const labels = labelledBy
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((id) => resolveIdReference(element, id))
+    .filter(Boolean)
+    .map((labelElement) => {
+      const referenceVisited = new Set(visited);
+      const text = computeAccessibleText(labelElement, referenceVisited, {
+        allowVisitedRoot: labelElement === element,
+        depth,
+        inLabelledByTraversal: true,
+        includeHiddenSubtree: isHiddenForAccessibleName(labelElement),
+        excludedElement: options.excludedElement ?? null
+      });
+
+      referenceVisited.forEach((node) => consultedNodes.add(node));
+      return text;
+    });
+
+  consultedNodes.forEach((node) => visited.add(node));
+  return normalizeWhitespace(labels.join(" "));
+}
+
+function createsAccessibleNameBoundary(element) {
+  const display = getComputedStyle(element).display;
+  return Boolean(display && display !== "contents" && !display.startsWith("inline"));
+}
+
+function getNativeDescendantTextAlternative(element) {
+  if (element instanceof HTMLImageElement) {
+    if (element.hasAttribute("alt")) {
+      return normalizeWhitespace(element.getAttribute("alt") ?? "");
+    }
+
+    const title = normalizeWhitespace(element.title);
+    return title || null;
+  }
+
+  if (element instanceof HTMLInputElement && element.type.toLowerCase() === "image" && element.hasAttribute("alt")) {
+    return normalizeWhitespace(element.getAttribute("alt") ?? "");
+  }
+
+  if (element instanceof SVGElement && element.tagName.toLowerCase() === "svg") {
+    const title = Array.from(element.children)
+      .find((child) => child.tagName.toLowerCase() === "title");
+
+    return title ? normalizeWhitespace(title.textContent ?? "") : null;
+  }
+
+  if (element.tagName.toLowerCase() === "br") {
+    return " ";
+  }
+
+  return null;
+}
+
+function getEmbeddedControlValue(element) {
+  if (element instanceof HTMLSelectElement) {
+    return normalizeWhitespace(getSelectedOptionText(element));
+  }
+
+  if (element instanceof HTMLTextAreaElement) {
+    return normalizeWhitespace(element.value);
+  }
+
+  if (element instanceof HTMLInputElement) {
+    const type = element.type.toLowerCase();
+
+    if (type === "range") {
+      return normalizeWhitespace(
+        element.getAttribute("aria-valuetext") ??
+        element.getAttribute("aria-valuenow") ??
+        element.value
+      );
+    }
+
+    if (!EMBEDDED_INPUT_EXCLUDED_TYPES.has(type)) {
+      return normalizeWhitespace(element.value);
+    }
+
+    return null;
+  }
+
+  const role = getExplicitRole(element);
+  if (role === "textbox" && element.isContentEditable) {
+    return normalizeWhitespace(element.textContent ?? "");
+  }
+
+  if (RANGE_ROLES.has(role ?? "")) {
+    return normalizeWhitespace(
+      element.getAttribute("aria-valuetext") ??
+      element.getAttribute("aria-valuenow") ??
+      element.getAttribute("value") ??
+      ""
+    );
+  }
+
+  return null;
+}
+
+function getCssGeneratedText(element, pseudoElement) {
+  const view = element.ownerDocument?.defaultView;
+  if (!view || /\bjsdom\b/i.test(view.navigator?.userAgent ?? "")) {
+    return "";
+  }
+
+  try {
+    const content = view.getComputedStyle(element, pseudoElement).content?.trim() ?? "";
+    if (!content || content === "none" || content === "normal") {
+      return "";
+    }
+
+    const stringTokens = content.match(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g);
+    if (!stringTokens) {
+      return "";
+    }
+
+    return stringTokens.map(decodeCssStringToken).join("");
+  } catch {
+    return "";
+  }
+}
+
+function decodeCssStringToken(token) {
+  const value = token.slice(1, -1);
+
+  return value
+    .replace(/\\([0-9a-f]{1,6})\s?/gi, (_, codePoint) => String.fromCodePoint(Number.parseInt(codePoint, 16)))
+    .replace(/\\(.)/gs, "$1");
+}
+
+function isHiddenForAccessibleName(element) {
+  if (!(element instanceof Element)) {
+    return true;
+  }
+
+  for (let current = element; current; current = getComposedParentElement(current)) {
+    if (current.tagName.toLowerCase() === "noscript") {
+      return true;
+    }
+
+    if (current.hasAttribute("hidden") || current.getAttribute("aria-hidden") === "true") {
+      return true;
+    }
+
+    if (current instanceof HTMLInputElement && HIDDEN_INPUT_TYPES.has(current.type)) {
+      return true;
+    }
+
+    const style = getComputedStyle(current);
+    if (style.display === "none" || style.visibility === "hidden" || style.visibility === "collapse") {
+      return true;
+    }
+
+    if (current.inert || current.hasAttribute("inert")) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function createHeadingItem(element, level, role) {
@@ -1070,7 +1224,7 @@ function getGraphicAccessibleName(element, role) {
       .find((child) => child instanceof HTMLElement && child.tagName.toLowerCase() === "figcaption");
 
     if (caption) {
-      return computeAccessibleText(caption, new Set()).trim();
+      return normalizeWhitespace(computeAccessibleText(caption, new Set()));
     }
   }
 
@@ -1850,62 +2004,14 @@ function getLabelText(element, visited) {
   if (element.labels?.length) {
     return normalizeWhitespace(
       Array.from(element.labels)
-        .map((label) => computeLabelText(label, element, visited))
-        .join(" ")
-    );
-  }
-
-  return "";
-}
-
-function computeLabelText(node, labelledControl, visited, depth = 0) {
-  if (depth > MAX_ACCESSIBLE_TEXT_DEPTH) {
-    return "";
-  }
-
-  if (node === labelledControl) {
-    return "";
-  }
-
-  if (node.nodeType === Node.TEXT_NODE) {
-    return node.textContent ?? "";
-  }
-
-  if (!(node instanceof Element) || !isExposedToAccessibilityTree(node)) {
-    return "";
-  }
-
-  if (visited.has(node)) {
-    return "";
-  }
-
-  visited.add(node);
-
-  const ariaLabel = node.getAttribute("aria-label");
-  if (ariaLabel?.trim()) {
-    return normalizeWhitespace(ariaLabel);
-  }
-
-  const labelledBy = node.getAttribute("aria-labelledby");
-  if (labelledBy?.trim()) {
-    return normalizeWhitespace(
-      labelledBy
-        .split(/\s+/)
-        .filter(Boolean)
-        .map((id) => resolveIdReference(node, id))
-        .filter(Boolean)
-        .map((labelElement) => computeAccessibleText(labelElement, visited, {
-          allowVisitedRoot: labelElement === node,
-          depth: depth + 1,
-          inLabelledByTraversal: true
+        .map((label) => computeAccessibleText(label, new Set(visited), {
+          excludedElement: element
         }))
         .join(" ")
     );
   }
 
-  return Array.from(getComposedChildNodes(node, normalizeAnalysisOptions()))
-    .map((child) => computeLabelText(child, labelledControl, visited, depth + 1))
-    .join(" ");
+  return "";
 }
 
 function getSelectRole(element) {

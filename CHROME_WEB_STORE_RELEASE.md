@@ -48,7 +48,7 @@ npm run webstore:release
 ## Optional settings
 
 ```sh
-CHROME_WEBSTORE_ZIP=forward-accessibility-lens-1.0.8-chrome-web-store.zip
+CHROME_WEBSTORE_ZIP=forward-accessibility-lens-1.0.9-chrome-web-store.zip
 CHROME_WEBSTORE_PUBLISH_TYPE=DEFAULT_PUBLISH
 CHROME_WEBSTORE_SKIP_REVIEW=false
 CHROME_WEBSTORE_DEPLOY_PERCENTAGE=100
